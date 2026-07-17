@@ -25,20 +25,28 @@ class OptionStudentSerializer(serializers.ModelSerializer):
 
 
 class QuestionSerializer(serializers.ModelSerializer):
-    options = OptionSerializer(many=True, read_only=True)
+    options = serializers.SerializerMethodField()
 
     class Meta:
         model = Question
         fields = ['id', 'text', 'question_type', 'marks', 'order', 'image', 'options', 'explanation']
 
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
+    def get_options(self, obj):
+        options = obj.options.all()
         request = self.context.get('request')
-        # Hide explanation during active exam
-        if request and request.user.role == 'student' and self.context.get('during_exam'):
-            data.pop('explanation', None)
-        return data
-
+        during_exam = self.context.get('during_exam', False)
+        result = []
+        for opt in options:
+            item = {
+                'id': opt.id,
+                'text': opt.text,
+                'order': opt.order,
+            }
+            # Only show is_correct to instructors/admins or after exam
+            if not during_exam or (request and request.user.role != 'student'):
+                item['is_correct'] = opt.is_correct
+            result.append(item)
+        return result
 
 class QuestionCreateSerializer(serializers.ModelSerializer):
     options = OptionSerializer(many=True, required=False)
