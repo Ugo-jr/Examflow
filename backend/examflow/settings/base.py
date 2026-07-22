@@ -156,22 +156,15 @@ EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@examflow.com')
 
-# Railway/Production settings
+# Production overrides
 import os
-if os.environ.get('RAILWAY_ENVIRONMENT'):
+if os.environ.get('DATABASE_URL'):
+    import dj_database_url
+    DATABASES['default'] = dj_database_url.parse(
+        os.environ.get('DATABASE_URL'),
+        conn_max_age=600
+    )
     DEBUG = False
     ALLOWED_HOSTS = ['*']
-    CSRF_TRUSTED_ORIGINS = [
-        'https://*.railway.app',
-        'https://*.vercel.app',
-    ]
     CORS_ALLOW_ALL_ORIGINS = True
-
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-
-import dj_database_url
-import os
-
-DATABASE_URL = os.environ.get('DATABASE_URL')
-if DATABASE_URL:
-    DATABASES['default'] = dj_database_url.parse(DATABASE_URL, conn_max_age=600)
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
